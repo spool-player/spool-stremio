@@ -1,0 +1,5 @@
+Spool Stremio provider is original code licensed under 0BSD.
+SDK files are copied from spool-player/spool and retain their SPDX notices;
+see sdk/LICENSE. The SDK contract runner derives from the Spool example conventions.
+Stremio is a trademark of its respective owners. This provider is not affiliated
+with or endorsed by Stremio and includes no torrent engine or bundled add-ons.
