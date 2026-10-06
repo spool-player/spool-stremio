@@ -108,6 +108,18 @@ The network smoke drives HTTP through a local legal-content add-on/server protoc
 consumes the negotiated bytes, and with `--live` checks Cinemeta's real manifest/catalog/meta/search.
 It is a protocol fixture, not a claim that a torrent engine or mpv was tested.
 
+For native account/QML/download testing, keep the same fixture running:
+
+```sh
+node tests/network-smoke.mjs --serve --port 11472 --media /path/to/legal.mp4
+```
+
+It prints the exact manifest/server URL, account origins, `createSource` configuration and item
+ID. Configure the native provider through its real onboarding using those URLs. `--media` supplies
+actual locally owned/legal MP4 bytes, including Range support; without it the fixture intentionally
+serves deterministic wire-test bytes, not a playable video. Stop with SIGINT/SIGTERM. Torrent
+create/stats/file endpoints are protocol fixtures only, never a claim of P2P engine verification.
+
 Push a tag matching the manifest (`v0.1.0`) after the final SDK pin is tested. The release workflow
 checks the pin, runs Qt JIT/interpreter contracts and local HTTP smoke, validates the reproducible
 archive and publishes the archive plus its real `spool-provider.json` feed. Curated entries must

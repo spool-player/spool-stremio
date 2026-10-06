@@ -2,9 +2,13 @@
 // Drives public operations through actual HTTP; local data is legal test content, not a torrent engine.
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { readFileSync } from 'node:fs';
 import { createSource } from '../logic/provider.mjs';
 const hash = '0123456789abcdef0123456789abcdef01234567';
-const bytes = Buffer.from('Spool original legal-content HTTP protocol fixture\n');
+const mediaIndex = process.argv.indexOf('--media');
+if (mediaIndex >= 0) assert(process.argv[mediaIndex + 1], '--media requires a legal local MP4 path');
+const bytes = mediaIndex >= 0 ? readFileSync(process.argv[mediaIndex + 1])
+    : Buffer.from('Spool original legal-content HTTP protocol fixture\n');
 let origin;
 const manifest = { id: 'legal.fixture', name: 'Legal fixture', version: '1.0.0', types: ['movie'],
     resources: ['catalog', 'meta', 'stream'], catalogs: [{ id: 'legal', type: 'movie', extra: [{ name: 'search' }] }] };
@@ -33,8 +37,23 @@ const fixture = http.createServer((request, response) => {
             assert.equal(torrentCreated, true);
             value = { files: [{ name: 'Legal-film.mp4', length: bytes.length }, { name: 'license.txt', length: 20 }] };
         } else if (path === '/original.mp4' || path === '/' + hash + '/0') {
-            response.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': bytes.length });
-            response.end(request.method === 'HEAD' ? undefined : bytes);
+            let status = 200, start = 0, end = bytes.length - 1;
+            const headers = { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes' };
+            if (request.headers.range) {
+                const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range);
+                if (range && (range[1] || range[2])) {
+                    start = range[1] ? Number(range[1]) : Math.max(0, bytes.length - Number(range[2]));
+                    end = range[1] && range[2] ? Math.min(Number(range[2]), end) : end;
+                } else start = bytes.length;
+                if (start > end || start >= bytes.length) {
+                    response.writeHead(416, { 'Content-Range': 'bytes */' + bytes.length }); response.end(); return;
+                }
+                status = 206;
+                headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + bytes.length;
+            }
+            headers['Content-Length'] = end - start + 1;
+            response.writeHead(status, headers);
+            response.end(request.method === 'HEAD' ? undefined : bytes.subarray(start, end + 1));
             return;
         } else {
             response.writeHead(404, { 'Content-Type': 'application/json' }); response.end('{}'); return;
@@ -43,7 +62,10 @@ const fixture = http.createServer((request, response) => {
         response.end(JSON.stringify(value));
     });
 });
-await new Promise(resolve => fixture.listen(0, '127.0.0.1', resolve));
+const portIndex = process.argv.indexOf('--port');
+const port = portIndex >= 0 ? Number(process.argv[portIndex + 1]) : 0;
+assert(Number.isInteger(port) && port >= 0 && port <= 65535, '--port must be 0–65535');
+await new Promise(resolve => fixture.listen(port, '127.0.0.1', resolve));
 origin = 'http://127.0.0.1:' + fixture.address().port;
 function hostFor(allowed) {
     return {
@@ -59,7 +81,23 @@ function hostFor(allowed) {
         }
     };
 }
-try {
+if (process.argv.includes('--serve')) {
+    console.log('Stremio legal-content protocol fixture listening at ' + origin);
+    console.log('Manifest URL: ' + origin + '/manifest.json');
+    console.log('Streaming server: ' + origin);
+    console.log('Native account origins: ' + JSON.stringify([origin]));
+    console.log('createSource configuration: ' + JSON.stringify({
+        addons: [{ url: origin + '/manifest.json', manifest }], server: origin, approvedOrigins: [origin]
+    }));
+    console.log('Item ID: ' + JSON.stringify(['movie', 'legal-film']));
+    console.log(mediaIndex >= 0 ? 'Serving supplied legal MP4 bytes with HTTP Range support.'
+        : 'Wire bytes only: supply --media /path/to/legal.mp4 for actual playback; this is not a torrent engine.');
+    await new Promise(resolve => {
+        process.once('SIGINT', resolve);
+        process.once('SIGTERM', resolve);
+    });
+    await new Promise(resolve => fixture.close(resolve));
+} else try {
     const host = hostFor(new Set([origin]));
     const source = createSource({}, host);
     await source.configure({ addons: [origin + '/manifest.json'], server: origin, imageOrigins: [] }, host);
