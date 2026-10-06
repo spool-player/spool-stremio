@@ -12,6 +12,27 @@ FocusScope {
     property var reviewOrigins: []
     property string reviewDescription: ""
     readonly property var listedOrigins: visibleOrigins()
+    function back() {
+        if (!addons.activeFocus && !images.activeFocus)
+            return false;
+        Qt.inputMethod.hide();
+        InputKeys.focus(cancelButton);
+        return true;
+    }
+    function routeKey(key, phase, repeat) {
+        const field = addons.activeFocus ? addons : images.activeFocus ? images : null;
+        if (!field || phase !== "press")
+            return false;
+        if (key === Qt.Key_Up && field.cursorRectangle.y <= field.topPadding + 1) {
+            InputKeys.focus(field === images ? serverField : cancelButton);
+            return true;
+        }
+        if (key === Qt.Key_Down && field.cursorRectangle.y + field.cursorRectangle.height >= field.contentHeight + field.topPadding - 1) {
+            InputKeys.focus(field === addons ? serverField : cancelButton);
+            return true;
+        }
+        return false;
+    }
 
     function message(code) {
         const messages = {
@@ -124,9 +145,29 @@ FocusScope {
                 placeholderText: "https://your-addon.example/manifest.json"
                 enabled: !root.busy
                 onTextChanged: root.reviewOrigins = []
-                wrapMode: TextEdit.Wrap
+                wrapMode: TextEdit.WrapAnywhere
                 selectByMouse: true
+                activeFocusOnTab: true
+                Accessible.name: "Add-on manifest URLs"
+                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText | Qt.ImhSensitiveData
                 color: Theme.textPrimary
+                placeholderTextColor: Theme.textMuted
+                selectionColor: Theme.accent
+                selectedTextColor: Theme.accentText
+                font.family: Typography.sans
+                font.hintingPreference: Typography.sansHinting
+                font.pixelSize: Metrics.bodySizePx
+                renderType: Theme.normalTextRenderType
+                padding: Metrics.scaled(14)
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.tab: serverField
+                KeyNavigation.backtab: cancelButton
+                background: Rectangle {
+                    color: addons.activeFocus ? Theme.bgRaised : Theme.bgPanel
+                    radius: Theme.radiusMedium
+                    border.width: addons.activeFocus ? Theme.focusBorderWidth : 1
+                    border.color: addons.activeFocus ? Theme.accent : Theme.border
+                }
             }
             SecondaryText {
                 Layout.fillWidth: true
@@ -156,8 +197,29 @@ FocusScope {
                 placeholderText: "https://images.example.org"
                 enabled: !root.busy
                 onTextChanged: root.reviewOrigins = []
+                wrapMode: TextEdit.WrapAnywhere
                 selectByMouse: true
+                activeFocusOnTab: true
+                Accessible.name: "Additional trusted origins"
+                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText | Qt.ImhSensitiveData
                 color: Theme.textPrimary
+                placeholderTextColor: Theme.textMuted
+                selectionColor: Theme.accent
+                selectedTextColor: Theme.accentText
+                font.family: Typography.sans
+                font.hintingPreference: Typography.sansHinting
+                font.pixelSize: Metrics.bodySizePx
+                renderType: Theme.normalTextRenderType
+                padding: Metrics.scaled(14)
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.tab: cancelButton
+                KeyNavigation.backtab: serverField
+                background: Rectangle {
+                    color: images.activeFocus ? Theme.bgRaised : Theme.bgPanel
+                    radius: Theme.radiusMedium
+                    border.width: images.activeFocus ? Theme.focusBorderWidth : 1
+                    border.color: images.activeFocus ? Theme.accent : Theme.border
+                }
             }
             SecondaryText {
                 Layout.fillWidth: true
@@ -188,6 +250,7 @@ FocusScope {
             RowLayout {
                 Layout.alignment: Qt.AlignRight
                 ActionButton {
+                    id: cancelButton
                     text: "Cancel"
                     kind: "flat"
                     onClicked: root.provider.close()

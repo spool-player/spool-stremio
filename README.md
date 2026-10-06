@@ -25,6 +25,11 @@ Add-ons are ordered: edit their line order to change catalogue/stream order and 
 Delete a line to remove an add-on; saving also refreshes its manifest. Settings can change/test/remove
 the streaming server by editing its address and saving.
 
+The multiline URL/origin editors explicitly use Spool's dark field/focus/selection palette,
+wrap long addresses, and use Tab/Shift+Tab to move between controls rather than insert tabs.
+Up/Down edit within multiline text; at the first/last displayed line they leave the field.
+Back exits multiline editing before closing the provider screen.
+
 Browse libraries supplied by non-required catalogues; search uses catalogues advertising the
 `search` extra. Optional `skip` is respected, IDs stay opaque, and series metadata supplies
 seasons and episode IDs. Required-extra catalogues that cannot be called without configuration
@@ -99,7 +104,7 @@ build/sdk/provider-contract-runner tests/contract.mjs
 QV4_FORCE_INTERPRETER=1 build/sdk/provider-contract-runner tests/contract.mjs
 node tests/network-smoke.mjs --live
 python3 sdk/spool-provider.py build .
-python3 sdk/spool-provider.py validate dist/spool.stremio-0.1.0.tar.zst
+python3 sdk/spool-provider.py validate dist/spool.stremio-0.1.1.tar.zst
 ```
 
 The Qt contract drives the public provider operations against scripted protocol responses,
@@ -120,7 +125,7 @@ actual locally owned/legal MP4 bytes, including Range support; without it the fi
 serves deterministic wire-test bytes, not a playable video. Stop with SIGINT/SIGTERM. Torrent
 create/stats/file endpoints are protocol fixtures only, never a claim of P2P engine verification.
 
-Push a tag matching the manifest (`v0.1.0`) after the final SDK pin is tested. The release workflow
+Push a tag matching the manifest (`v0.1.1`) after the final SDK pin is tested. The release workflow
 checks the pin, runs Qt JIT/interpreter contracts and local HTTP smoke, validates the reproducible
 archive and publishes the archive plus its real `spool-provider.json` feed. Curated entries must
 use the published asset URL, exact archive size and SHA-256, never placeholders.
