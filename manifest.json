@@ -1,16 +1,23 @@
 {
-  "format": 2,
-  "api": "0.2",
+  "format": 3,
   "id": "spool.stremio",
   "name": "Stremio",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "Spool",
   "summary": "Trusted Stremio add-ons and your external streaming server",
   "homepage": "https://github.com/spool-player/spool-stremio",
   "icon": "assets/icon.svg",
   "entry": "logic/provider.mjs",
-  "capabilities": ["search", "downloads"],
-  "extensions": {"spool.origin-grants": 1, "spool.http-metadata": 1},
+  "capabilities": [
+    "search",
+    "downloads",
+    "originGrants",
+    "httpMetadata"
+  ],
   "origins": [],
-  "ui": {"login": "ui/Addons.qml", "settings": "ui/Addons.qml", "picker": "ui/Picker.qml"}
+  "ui": {
+    "login": "ui/Addons.qml",
+    "settings": "ui/Addons.qml",
+    "picker": "ui/Picker.qml"
+  }
 }

@@ -69,7 +69,7 @@ await new Promise(resolve => fixture.listen(port, '127.0.0.1', resolve));
 origin = 'http://127.0.0.1:' + fixture.address().port;
 function hostFor(allowed) {
     return {
-        extensions: { 'spool.origin-grants': 1, 'spool.http-metadata': 1 },
+        capabilities: { 'originGrants': true, 'httpMetadata': true },
         emit() {}, log() {}, isLogEnabled() { return false; },
         async http(url, options = {}) {
             assert(allowed.has(new URL(url).origin), 'transport denied unapproved origin');

@@ -24,7 +24,7 @@ export function run() {
     const requests = [], events = [], logs = [];
     let headStatus = 200, contentType = 'video/mp4';
     const host = {
-        extensions: { 'spool.origin-grants': 1, 'spool.http-metadata': 1 },
+        capabilities: { 'originGrants': true, 'httpMetadata': true },
         emit: (type, payload) => events.push({ type: type, payload: payload }),
         log: (level, message, fields) => logs.push({ level: level, message: message, fields: fields }),
         isLogEnabled: () => true,

@@ -310,7 +310,7 @@ export function createSource(configuration, sourceHost) {
         });
     }
     return {
-        describe: () => ({ extensions: { 'spool.origin-grants': 1 } }),
+        describe: () => ({ capabilities: Object.fromEntries(['search', 'downloads', 'originGrants', 'httpMetadata'].filter(id => sourceHost.capabilities && sourceHost.capabilities[id] === true).map(id => [id, true])) }),
         configuration: () => ({ configuration: config }),
         validateUrls: args => ({ addons: (args.addons || []).map(url => ({ url: manifestUrl(url), origin: parseUrl(url).origin })),
             server: serverUrl(args.server), serverOrigin: args.server ? parseUrl(args.server).origin : '',
