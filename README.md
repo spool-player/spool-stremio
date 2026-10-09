@@ -103,9 +103,14 @@ cmake -S sdk -B build/sdk -G Ninja && cmake --build build/sdk
 build/sdk/provider-contract-runner tests/contract.mjs
 QV4_FORCE_INTERPRETER=1 build/sdk/provider-contract-runner tests/contract.mjs
 node tests/network-smoke.mjs --live
-python3 sdk/spool-provider.py build .
-python3 sdk/spool-provider.py validate dist/spool.stremio-0.1.1.tar.zst
+VERSION=$(python3 -c 'import json; print(json.load(open("manifest.json"))["version"])')
+python3 sdk/spool-provider.py build . --output "dist/spool.stremio-$VERSION.szo"
+python3 sdk/spool-provider.py validate "dist/spool.stremio-$VERSION.szo"
 ```
+
+Future packages use `.szo` (Spool Zstandard Object), with the same format-3 zstd USTAR
+bytes. The pinned SDK is unchanged; pass `--output` explicitly rather than using
+its historical default filename. Existing published package URLs remain unchanged.
 
 The Qt contract drives the public provider operations against scripted protocol responses,
 including consent, paging, series, headers, real file choice and finite download rejection.
