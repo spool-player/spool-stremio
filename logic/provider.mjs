@@ -157,13 +157,13 @@ export function createSource(configuration, sourceHost) {
         const skip = extras(row.catalog).some(extra => extra.name === 'skip');
         const extra = [];
         if (search) extra.push('search=' + encodeURIComponent(String(args.query || '')));
-        if (skip && offset) extra.push('skip=' + offset);
+        if (skip) extra.push('skip=' + offset);
         return requestJson(host, endpoint(row.addon, 'catalog', row.catalog.type, row.catalog.id, extra.join('&'))).then(response => {
             if (!Array.isArray(response.metas)) fail('invalid_catalog');
             const limit = Math.max(1, bounded(args.limit, 100, 50));
             const rows = skip ? response.metas : response.metas.slice(offset);
             const slice = rows.slice(0, limit);
-            const more = skip ? rows.length >= limit && slice.length > 0 : rows.length > limit;
+            const more = skip ? rows.length > 0 : rows.length > limit;
             const next = more ? [index, offset + slice.length] : [index + 1, 0];
             const exhausted = next[0] >= selected.length;
             return { items: slice.map(meta => item(meta, row.catalog.type)), exhausted: exhausted,

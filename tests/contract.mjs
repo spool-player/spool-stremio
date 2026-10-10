@@ -20,6 +20,57 @@ const manifest = { id: 'test.addon', name: 'Test Add-on', version: '1.0.0', reso
         { type: 'movie', id: 'search-only', extra: [{ name: 'search', isRequired: true }] },
         { type: 'movie', id: 'genre-required', extra: [{ name: 'genre', isRequired: true }] }
     ] };
+function catalogPaginationContract() {
+    let sequence = Promise.resolve();
+    for (const operation of ['browse', 'search']) {
+        for (const scenario of [
+            { skip: { name: 'skip', isRequired: true }, backendLimit: 20, total: 40, offsets: [0, 20, 40] },
+            { skip: { name: 'skip' }, backendLimit: 80, total: 80, offsets: [0, 50, 80] },
+            { skip: null, backendLimit: 80, total: 80, offsets: [0, 0] }
+        ]) {
+            sequence = sequence.then(() => {
+            const offsets = [], delivered = [];
+            const metas = Array.from({ length: scenario.total }, (_, index) => ({ id: 'page-' + index, name: 'Film ' + index }));
+            const pagingManifest = Object.assign({}, manifest, { catalogs: [
+                { type: 'movie', id: 'paged', extra: [{ name: 'search' }].concat(scenario.skip ? [scenario.skip] : []) },
+                { type: 'movie', id: 'next', extra: [{ name: 'search' }] },
+                { type: 'movie', id: 'unavailable', extra: [{ name: 'search' }, { name: 'genre', isRequired: true }] }
+            ] });
+            const host = { http: url => {
+                check(url.indexOf('/unavailable') < 0, 'required unsupported extras stay filtered');
+                let rows;
+                if (url.indexOf('/paged') >= 0) {
+                    const match = /skip=(\d+)/.exec(url);
+                    check(!scenario.skip || !!match, 'declared skip is sent even at zero');
+                    const offset = match ? Number(match[1]) : 0;
+                    offsets.push(offset);
+                    rows = metas.slice(offset, offset + scenario.backendLimit);
+                } else rows = [{ id: 'next-film', name: 'Next catalogue film' }];
+                return Promise.resolve({ status: 200, body: JSON.stringify({ metas: rows }) });
+            } };
+            const source = createSource({ addons: [{ url: origin + '/manifest.json', manifest: pagingManifest }] }, host);
+            let cursor = null, pages = 0;
+            function nextPage() {
+                check(++pages <= 5, operation + ' catalog pagination terminates');
+                return source[operation]({ query: 'film', limit: 50, cursor: cursor }, host).then(result => {
+                    check(result.items.length <= 50, 'host page limit is respected');
+                    result.items.forEach(item => delivered.push(JSON.parse(item.id)[1]));
+                    cursor = result.cursor;
+                    check(result.exhausted ? cursor === null : !!cursor, 'continuation remains available until all catalogs finish');
+                    return result.exhausted ? undefined : nextPage();
+                });
+            }
+            return nextPage().then(() => {
+            check(JSON.stringify(offsets) === JSON.stringify(scenario.offsets), operation + ' advances by emitted items until empty');
+            check(delivered.length === scenario.total + 1 && delivered[scenario.total] === 'next-film', operation + ' advances to the next catalog');
+            for (let index = 0; index < scenario.total; ++index)
+                check(delivered[index] === 'page-' + index, operation + ' delivers every backend item once in order');
+            });
+            });
+        }
+    }
+    return sequence;
+}
 export function run() {
     const requests = [], events = [], logs = [];
     let headStatus = 200, contentType = 'video/mp4';
@@ -35,9 +86,9 @@ export function run() {
             let body;
             if (url === origin + '/private-config/manifest.json') body = manifest;
             else if (url === server + '/settings') body = { values: { serverVersion: '4.20.8' } };
-            else if (url.endsWith('/catalog/movie/top.json')) return Promise.resolve({ status: 307, body: '',
+            else if (url.endsWith('/catalog/movie/top.json') || url.endsWith('/catalog/movie/top/skip=0.json')) return Promise.resolve({ status: 307, body: '',
                 location: 'https://catalog.example/catalog/movie/top/first.json' });
-            else if (url.indexOf('/catalog/movie/top/') >= 0 && url.indexOf('skip=') >= 0) body = { metas: [] };
+            else if (url.indexOf('/catalog/movie/top/') >= 0 && /skip=[1-9]/.test(url)) body = { metas: [] };
             else if (url.indexOf('/catalog/movie/') >= 0) body = { metas: [meta, { id: 'tt003', name: 'Second Film' }] };
             else if (url.indexOf('/catalog/series/') >= 0) body = { metas: [series] };
             else if (url.endsWith('/meta/movie/tt001.json')) body = { meta: meta };
@@ -149,5 +200,5 @@ export function run() {
             return rejection(() => source.download({ itemId: itemId, stream: directId, mode: 'original' }, host), 'download_not_finite');
         }).then(() => {
             check(JSON.stringify(logs).indexOf('private') < 0 && JSON.stringify(logs).indexOf(hash) < 0, 'operational logging excludes secrets and hashes');
-        });
+        }).then(() => catalogPaginationContract());
 }

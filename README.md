@@ -30,10 +30,12 @@ wrap long addresses, and use Tab/Shift+Tab to move between controls rather than 
 Up/Down edit within multiline text; at the first/last displayed line they leave the field.
 Back exits multiline editing before closing the provider screen.
 
-Browse libraries supplied by non-required catalogues; search uses catalogues advertising the
-`search` extra. Optional `skip` is respected, IDs stay opaque, and series metadata supplies
-seasons and episode IDs. Required-extra catalogues that cannot be called without configuration
-are not advertised. A stream-only add-on supplies nothing to browse; add a catalogue add-on.
+Browse libraries supplied by callable catalogues; search uses catalogues advertising the
+`search` extra. Declared optional or required `skip` starts at zero and advances by delivered
+items until an empty backend page, even when backend and host page sizes differ. IDs stay opaque,
+and series metadata supplies seasons and episode IDs. Required-extra catalogues that cannot be
+called without configuration are not advertised. A stream-only add-on supplies nothing to browse;
+add a catalogue add-on.
 
 Playing opens the provider-owned stream picker. Unsupported external-player/browser/YouTube
 streams and torrents without a server remain visible with an actionable explanation. HTTP
